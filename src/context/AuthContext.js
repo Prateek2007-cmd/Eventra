@@ -388,42 +388,29 @@ export const AuthProvider = ({ children }) => {
     return true;
   }, [user]);
 
-  const hasRole = (roleName) => {
+  const hasRole = useCallback((roleName) => {
     if (!user?.roles) return false;
-
-    // With HttpOnly cookies, we cannot extract roles from the JWT client-side.
-    // We rely on the cached user roles for UI rendering.
-    // Real security enforcement happens on the backend.
     const targetRole = String(roleName).toUpperCase();
     return user.roles.includes(targetRole);
-  };
+  }, [user]);
 
-  const hasPermission = (permissionName) => {
-    // With HttpOnly cookies, we cannot extract permissions from the JWT client-side.
-    // We rely on the validated user profile from the server for UI rendering.
+  const hasPermission = useCallback((permissionName) => {
     if (!user?.permissions) return false;
-
     return user.permissions.includes(permissionName);
-  };
+  }, [user]);
 
-  const hasAnyRole = (...roleNames) => roleNames.some((role) => hasRole(role));
+  const hasAnyRole = useCallback((...roleNames) => roleNames.some((role) => hasRole(role)), [hasRole]);
+  const hasAnyPermission = useCallback((...permissionNames) =>
+    permissionNames.some((permission) => hasPermission(permission)), [hasPermission]);
 
-  const hasAnyPermission = (...permissionNames) =>
-    permissionNames.some((permission) => hasPermission(permission));
+  const isAdmin = useCallback(() => hasRole(ROLES.ADMIN), [hasRole]);
+  const isEventManager = useCallback(() => hasRole(ROLES.ORGANIZER), [hasRole]);
+  const isSuperAdmin = useCallback(() => hasRole(ROLES.SUPER_ADMIN), [hasRole]);
+  const isOrganizer = useCallback(() => hasRole(ROLES.ORGANIZER), [hasRole]);
+  const isVolunteer = useCallback(() => hasRole(ROLES.VOLUNTEER), [hasRole]);
+  const isAttendee = useCallback(() => hasRole(ROLES.ATTENDEE), [hasRole]);
 
-  const isAdmin = () => hasRole(ROLES.ADMIN);
-
-  const isEventManager = () => hasRole(ROLES.ORGANIZER);
-
-  const isSuperAdmin = () => hasRole(ROLES.SUPER_ADMIN);
-
-  const isOrganizer = () => hasRole(ROLES.ORGANIZER);
-
-  const isVolunteer = () => hasRole(ROLES.VOLUNTEER);
-
-  const isAttendee = () => hasRole(ROLES.ATTENDEE);
-
-  const value = {
+  const value = React.useMemo(() => ({
     user,
     token,
     loading,
@@ -443,7 +430,11 @@ export const AuthProvider = ({ children }) => {
     isOrganizer,
     isVolunteer,
     isAttendee,
-  };
+  }), [
+    user, token, loading, login, logout, signInWithGoogle, setAuthSession, setUser,
+    isAuthenticated, hasRole, hasPermission, hasAnyRole, hasAnyPermission,
+    isAdmin, isEventManager, isSuperAdmin, isOrganizer, isVolunteer, isAttendee
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
